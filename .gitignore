@@ -133,3 +133,5 @@ dmypy.json
 data/*/*.csv
 data/*/*.txt
 */models/*
+.idea/*
+*.csv
