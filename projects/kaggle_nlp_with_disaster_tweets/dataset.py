@@ -2,7 +2,7 @@ from torch.utils.data import Dataset
 import json
 import pandas as pd
 
-from .vectorizer import TweetVectorizer
+from vectorizer import TweetVectorizer
 
 
 class TweetDataset(Dataset):
@@ -12,6 +12,10 @@ class TweetDataset(Dataset):
         """
         :param tweet_df: Tweets Dataframe.
         :param vectorizer: Vectorizer instantiated from dataset.
+        :param token_length_cutoff: Cutoff to drop token less than the given value.
+            defaults to 1.
+        :param token_count_cutoff: Cutoff to drop tokens with count less than
+            the given value. default to 4.
         """
         self.tweet_df = tweet_df
         self._vectorizer = vectorizer
@@ -36,12 +40,16 @@ class TweetDataset(Dataset):
 
     @classmethod
     def load_dataset_and_make_vectorizer(
-        cls, tweets_csv, token_length_cutoff, token_count_cutoff
+        cls, tweets_csv, token_length_cutoff=1, token_count_cutoff=4
     ):
         """
         Load dataset and make a new vectorizer.
 
         :param tweets_csv: location of the dataset.
+        :param token_length_cutoff: Cutoff to drop token less than the given value.
+            defaults to 1.
+        :param token_count_cutoff: Cutoff to drop tokens with count less than
+            the given value. default to 4.
         :return: an instance of TweetDataset.
         """
         tweet_df = pd.read_csv(tweets_csv)
@@ -108,7 +116,7 @@ class TweetDataset(Dataset):
         """
         row = self._target_df.iloc[index]
         tweet_vector = self._vectorizer.vectorize(row.text)
-        target_index = self._vectorizer.rating_vocab.lookup_token(row.target)
+        target_index = self._vectorizer.target_vocab.lookup_token(row.target)
         return {"x_data": tweet_vector, "y_target": target_index}
 
     def get_num_batches(self, batch_size):

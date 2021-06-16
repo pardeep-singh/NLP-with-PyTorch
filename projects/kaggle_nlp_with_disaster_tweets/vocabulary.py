@@ -51,7 +51,7 @@ class Vocabulary(object):
         else:
             index = len(self._token_to_idx)
             self._token_to_idx[token] = index
-            self._token_to_idx[index] = token
+            self._idx_to_token[index] = token
         return index
 
     def lookup_token(self, token):

@@ -2,7 +2,7 @@ import numpy as np
 import preprocessor as p
 from gensim.parsing.preprocessing import remove_stopwords
 import re
-from .vocabulary import Vocabulary
+from vocabulary import Vocabulary
 from collections import Counter
 
 
@@ -17,6 +17,10 @@ class TweetVectorizer(object):
         """
         :param tweet_vocab: Maps tweet tokens to integers.
         :param target_vocab: Maps target labels to integers.
+        :param token_length_cutoff: Cutoff to drop token less than the given value.
+            defaults to 1.
+        :param token_count_cutoff: Cutoff to drop tokens with count less than
+            the given value. default to 4.
         """
         self.tweet_vocab = tweet_vocab
         self.target_vocab = target_vocab
@@ -24,11 +28,13 @@ class TweetVectorizer(object):
         self.token_count_cutoff = token_count_cutoff
 
     @staticmethod
-    def tokenizer(tweet, token_length_cutoff):
+    def tokenizer(tweet, token_length_cutoff=1):
         """
         Tokenizes the given tweet.
 
         :param tweet: Tweet for tokenization.
+        :param token_length_cutoff: Cutoff to drop token less than the given value.
+            defaults to 1.
         :return: List of tokens generated from given tweet.
         """
         clean_tweet = p.clean(
@@ -63,6 +69,10 @@ class TweetVectorizer(object):
         Initialises the vectorizer from the dataset dataframe.
 
         :param tweet_df: The tweets dataset dataframe.
+        :param token_length_cutoff: Cutoff to drop token less than the given value.
+            defaults to 1.
+        :param token_count_cutoff: Cutoff to drop tokens with count less than
+            the given value. default to 4.
         :return: Returns the initialised vectorizer.
         """
         tweet_vocab = Vocabulary(add_unk=True)
@@ -72,7 +82,7 @@ class TweetVectorizer(object):
             target_vocab.add_token(target_class)
 
         token_counts = Counter()
-        for tweet in tweet_df.tweet:
+        for tweet in tweet_df.text:
             for token in TweetVectorizer.tokenizer(tweet, token_length_cutoff):
                 token_counts[token] += 1
         for token, count in token_counts.items():
