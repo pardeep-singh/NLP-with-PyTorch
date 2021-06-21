@@ -2,6 +2,8 @@ from torch.utils.data import DataLoader
 import torch
 import numpy as np
 import os
+from tqdm import notebook
+import torch.nn.functional as F
 
 
 def generate_batches(dataset, batch_size, shuffle=True, drop_last=True, device="cpu"):
@@ -105,6 +107,160 @@ def update_train_state(args, model, train_state):
         )
 
     return train_state
+
+
+def train_model(classifier, loss_func, optimizer, scheduler, dataset, args):
+    classifier = classifier.to(args.device)
+    train_state = make_train_state(args)
+    epoch_bar = notebook.tqdm(
+        desc="Training Routine", total=args.num_epochs, position=0
+    )
+    dataset.set_split("train")
+    train_bar = notebook.tqdm(
+        desc="split=train",
+        total=dataset.get_num_batches(args.batch_size),
+        position=1,
+        leave=True,
+    )
+    dataset.set_split("val")
+    val_bar = notebook.tqdm(
+        desc="split=val",
+        total=dataset.get_num_batches(args.batch_size),
+        position=1,
+        leave=True,
+    )
+
+    for epoch_index in range(args.num_epochs):
+        train_state["epoch_index"] = epoch_index
+        # Iterate Over Training Dataset
+        # Setup: Batch Generator, set loss & acc to 0, set train mode on
+        dataset.set_split("train")
+        batch_generator = generate_batches(
+            dataset, batch_size=args.batch_size, device=args.device
+        )
+        training_running_loss, training_running_acc = 0.0, 0.0
+        classifier.train()
+
+        for batch_index, batch_dict in enumerate(batch_generator):
+            # 5 Step Training Routine
+
+            # Step 1. Zero the Gradients
+            optimizer.zero_grad()
+
+            # Step 2. Compute the gradients
+            y_pred = classifier(x_in=batch_dict["x_data"].float())
+
+            # Step 3. Compute the Output
+            loss = loss_func(y_pred, batch_dict["y_target"].float())
+            loss_batch = loss.item()
+            training_running_loss += (loss_batch - training_running_loss) / (
+                batch_index + 1
+            )
+
+            # Step 4. Use loss to produce gradients
+            loss.backward()
+
+            # Step 5. Use Optimizer to take gradient step
+            optimizer.step()
+
+            # Compute the accuracy
+            acc_batch = compute_accuracy(y_pred, batch_dict["y_target"])
+            training_running_acc += (acc_batch - training_running_acc) / (
+                batch_index + 1
+            )
+
+            # Update the bar
+            train_bar.set_postfix(
+                loss=training_running_loss, acc=training_running_acc, epoch=epoch_index
+            )
+            train_bar.update()
+        train_state["train_loss"].append(training_running_loss)
+        train_state["train_acc"].append(training_running_acc)
+
+        # Iterate Over Val Dataset
+        # Setup: Batch Generator, set loss and acc to 0, set eval mode on
+        dataset.set_split("val")
+        batch_generator = generate_batches(
+            dataset, batch_size=args.batch_size, device=args.device
+        )
+        val_running_loss, val_running_acc = 0.0, 0.0
+        classifier.eval()
+
+        for batch_index, batch_dict in enumerate(batch_generator):
+            # Step 1. Compute the Output
+            y_pred = classifier(x_in=batch_dict["x_data"].float())
+
+            # Step 2. Compute the loss
+            loss = loss_func(y_pred, batch_dict["y_target"].float())
+            loss_batch = loss.item()
+            val_running_loss += (loss_batch - val_running_loss) / (batch_index + 1)
+
+            # Step 3. Compute the accuracy
+            acc_batch = compute_accuracy(y_pred, batch_dict["y_target"])
+            val_running_acc += (acc_batch - val_running_acc) / (batch_index + 1)
+            val_bar.set_postfix(
+                loss=val_running_loss, acc=val_running_acc, epoch=epoch_index
+            )
+            val_bar.update()
+        train_state["val_loss"].append(val_running_loss)
+        train_state["val_acc"].append(val_running_acc)
+        train_state = update_train_state(
+            args=args, model=classifier, train_state=train_state
+        )
+        scheduler.step(train_state["val_loss"][-1])
+
+        train_bar.n, val_bar.n = 0, 0
+        epoch_bar.update()
+
+        if train_state["stop_early"]:
+            print("Stopping early....")
+            break
+
+        if epoch_index % 10 == 0:
+            print(
+                f"{epoch_index} Epoch Stats: "
+                f"Training Loss={training_running_loss}, "
+                f"Training Accuracy={training_running_acc}, "
+                f"Validation Loss={val_running_loss}, "
+                f"Validation Accuracy={val_running_acc}."
+            )
+    return train_state
+
+
+def evaluate_test_split(classifier, dataset, loss_func, train_state, args):
+    classifier = classifier.to(args.device)
+    dataset.set_split("test")
+    batch_generator = generate_batches(
+        dataset, batch_size=args.batch_size, device=args.device
+    )
+    running_loss, running_acc = 0.0, 0.0
+    classifier.eval()
+
+    for batch_index, batch_dict in enumerate(batch_generator):
+        # Step 1. Compute the Output
+        y_pred = classifier(x_in=batch_dict["x_data"].float())
+
+        # Step 2. Compute the loss
+        loss = loss_func(y_pred, batch_dict["y_target"].float())
+        loss_batch = loss.item()
+        running_loss += (loss_batch - running_loss) / (batch_index + 1)
+
+    train_state["test_loss"] = running_loss
+    train_state["test_acc"] = running_acc
+    print(f"Test Accuracy={running_acc}, Test Loss={running_loss}.")
+    train_state = update_train_state(
+        args=args, model=classifier, train_state=train_state
+    )
+    return train_state
+
+
+def predict_class(classifier, vectorizer, tweet, decision_threshold=0.5):
+    tokenized_tweet = TweetVectorizer.tokenizer(tweet)
+    vectorized_tweet = torch.tensor(vectorizer.vectorizer(tokenized_tweet))
+    result = classifier(vectorized_tweet.view(1, -1))
+    probability_value = F.sigmoid(result).item()
+    predicted_index = 1 if probability_value >= decision_threshold else 0
+    return vectorizer.target_vocab.lookup_index(predicted_index)
 
 
 if __name__ == "__main__":
