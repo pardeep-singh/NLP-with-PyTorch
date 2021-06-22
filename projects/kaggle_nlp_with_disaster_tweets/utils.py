@@ -5,6 +5,7 @@ import os
 from tqdm import notebook
 import torch.nn.functional as F
 
+from vectorizer import TweetVectorizer
 
 def generate_batches(dataset, batch_size, shuffle=True, drop_last=True, device="cpu"):
     """
@@ -218,11 +219,12 @@ def train_model(classifier, loss_func, optimizer, scheduler, dataset, args):
 
         if epoch_index % 10 == 0:
             print(
-                f"{epoch_index} Epoch Stats: "
+                f"--------------- {epoch_index}th Epoch Stats---------------\n"
                 f"Training Loss={training_running_loss}, "
-                f"Training Accuracy={training_running_acc}, "
+                f"Training Accuracy={training_running_acc}\n"
                 f"Validation Loss={val_running_loss}, "
-                f"Validation Accuracy={val_running_acc}."
+                f"Validation Accuracy={val_running_acc}.\n"
+                "------------------------------------------------------------"
             )
     return train_state
 
@@ -244,10 +246,14 @@ def evaluate_test_split(classifier, dataset, loss_func, train_state, args):
         loss = loss_func(y_pred, batch_dict["y_target"].float())
         loss_batch = loss.item()
         running_loss += (loss_batch - running_loss) / (batch_index + 1)
+        
+        # Step 3. Compute the accuracy
+        acc_batch = compute_accuracy(y_pred, batch_dict["y_target"])
+        running_acc += (acc_batch - running_acc) / (batch_index + 1)
 
     train_state["test_loss"] = running_loss
     train_state["test_acc"] = running_acc
-    print(f"Test Accuracy={running_acc}, Test Loss={running_loss}.")
+    print(f"-------- Test Accuracy={running_acc}, Test Loss={running_loss}.--------")
     train_state = update_train_state(
         args=args, model=classifier, train_state=train_state
     )
@@ -256,7 +262,7 @@ def evaluate_test_split(classifier, dataset, loss_func, train_state, args):
 
 def predict_class(classifier, vectorizer, tweet, decision_threshold=0.5):
     tokenized_tweet = TweetVectorizer.tokenizer(tweet)
-    vectorized_tweet = torch.tensor(vectorizer.vectorizer(tokenized_tweet))
+    vectorized_tweet = torch.tensor(vectorizer.vectorize(tokenized_tweet))
     result = classifier(vectorized_tweet.view(1, -1))
     probability_value = F.sigmoid(result).item()
     predicted_index = 1 if probability_value >= decision_threshold else 0
