@@ -7,6 +7,7 @@ import torch.nn.functional as F
 
 from vectorizer import TweetVectorizer
 
+
 def generate_batches(dataset, batch_size, shuffle=True, drop_last=True, device="cpu"):
     """
     Function to wrap PyTorch DataLoader. Ensures that each tensor
@@ -181,34 +182,37 @@ def train_model(classifier, loss_func, optimizer, scheduler, dataset, args):
         # Iterate Over Val Dataset
         # Setup: Batch Generator, set loss and acc to 0, set eval mode on
         dataset.set_split("val")
-        batch_generator = generate_batches(
-            dataset, batch_size=args.batch_size, device=args.device
-        )
         val_running_loss, val_running_acc = 0.0, 0.0
-        classifier.eval()
-
-        for batch_index, batch_dict in enumerate(batch_generator):
-            # Step 1. Compute the Output
-            y_pred = classifier(x_in=batch_dict["x_data"].float())
-
-            # Step 2. Compute the loss
-            loss = loss_func(y_pred, batch_dict["y_target"].float())
-            loss_batch = loss.item()
-            val_running_loss += (loss_batch - val_running_loss) / (batch_index + 1)
-
-            # Step 3. Compute the accuracy
-            acc_batch = compute_accuracy(y_pred, batch_dict["y_target"])
-            val_running_acc += (acc_batch - val_running_acc) / (batch_index + 1)
-            val_bar.set_postfix(
-                loss=val_running_loss, acc=val_running_acc, epoch=epoch_index
+        if len(dataset) > 0:
+            batch_generator = generate_batches(
+                dataset, batch_size=args.batch_size, device=args.device
             )
-            val_bar.update()
+            classifier.eval()
+
+            for batch_index, batch_dict in enumerate(batch_generator):
+                # Step 1. Compute the Output
+                y_pred = classifier(x_in=batch_dict["x_data"].float())
+
+                # Step 2. Compute the loss
+                loss = loss_func(y_pred, batch_dict["y_target"].float())
+                loss_batch = loss.item()
+                val_running_loss += (loss_batch - val_running_loss) / (batch_index + 1)
+
+                # Step 3. Compute the accuracy
+                acc_batch = compute_accuracy(y_pred, batch_dict["y_target"])
+                val_running_acc += (acc_batch - val_running_acc) / (batch_index + 1)
+                val_bar.set_postfix(
+                    loss=val_running_loss, acc=val_running_acc, epoch=epoch_index
+                )
+                val_bar.update()
+            scheduler.step(train_state["val_loss"][-1])
+        else:
+            scheduler.step(train_state["train_loss"][-1])
         train_state["val_loss"].append(val_running_loss)
         train_state["val_acc"].append(val_running_acc)
         train_state = update_train_state(
             args=args, model=classifier, train_state=train_state
         )
-        scheduler.step(train_state["val_loss"][-1])
 
         train_bar.n, val_bar.n = 0, 0
         epoch_bar.update()
@@ -232,10 +236,14 @@ def train_model(classifier, loss_func, optimizer, scheduler, dataset, args):
 def evaluate_test_split(classifier, dataset, loss_func, train_state, args):
     classifier = classifier.to(args.device)
     dataset.set_split("test")
+    running_loss, running_acc = 0.0, 0.0
+    if len(dataset) == 0:
+        train_state["test_loss"] = running_loss
+        train_state["test_acc"] = running_acc
+        return train_state
     batch_generator = generate_batches(
         dataset, batch_size=args.batch_size, device=args.device
     )
-    running_loss, running_acc = 0.0, 0.0
     classifier.eval()
 
     for batch_index, batch_dict in enumerate(batch_generator):
@@ -246,7 +254,7 @@ def evaluate_test_split(classifier, dataset, loss_func, train_state, args):
         loss = loss_func(y_pred, batch_dict["y_target"].float())
         loss_batch = loss.item()
         running_loss += (loss_batch - running_loss) / (batch_index + 1)
-        
+
         # Step 3. Compute the accuracy
         acc_batch = compute_accuracy(y_pred, batch_dict["y_target"])
         running_acc += (acc_batch - running_acc) / (batch_index + 1)
@@ -261,8 +269,7 @@ def evaluate_test_split(classifier, dataset, loss_func, train_state, args):
 
 
 def predict_class(classifier, vectorizer, tweet, decision_threshold=0.5):
-    tokenized_tweet = TweetVectorizer.tokenizer(tweet)
-    vectorized_tweet = torch.tensor(vectorizer.vectorize(tokenized_tweet))
+    vectorized_tweet = torch.tensor(vectorizer.vectorize(tweet))
     result = classifier(vectorized_tweet.view(1, -1))
     probability_value = F.sigmoid(result).item()
     predicted_index = 1 if probability_value >= decision_threshold else 0

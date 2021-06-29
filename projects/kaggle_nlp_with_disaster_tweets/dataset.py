@@ -7,7 +7,7 @@ from vectorizer import TweetVectorizer
 
 class TweetDataset(Dataset):
     def __init__(
-        self, tweet_df, vectorizer, token_length_cutoff=1, token_count_cutoff=4
+        self, tweet_df, vectorizer, token_length_cutoff=1, token_count_cutoff=4, use_full_dataset=False
     ):
         """
         :param tweet_df: Tweets Dataframe.
@@ -16,20 +16,32 @@ class TweetDataset(Dataset):
             defaults to 1.
         :param token_count_cutoff: Cutoff to drop tokens with count less than
             the given value. default to 4.
+        :param use_full_dataset: Boolean param to control whether to use the full dataset
+            training the model or not. defaults to False.
         """
         self.tweet_df = tweet_df
         self._vectorizer = vectorizer
         self.token_length_cutoff = token_length_cutoff
         self.token_count_cutoff = token_count_cutoff
 
-        self.train_df = self.tweet_df[self.tweet_df.split == "train"]
-        self.train_size = len(self.train_df)
+        if use_full_dataset:
+            self.train_df = self.tweet_df[self.tweet_df.split == "train"]
+            self.train_size = len(self.train_df)
 
-        self.val_df = self.tweet_df[self.tweet_df.split == "val"]
-        self.val_size = len(self.val_df)
+            self.val_df = self.tweet_df[self.tweet_df.split == "random"]
+            self.val_size = 0
 
-        self.test_df = self.tweet_df[self.tweet_df.split == "test"]
-        self.test_size = len(self.test_df)
+            self.test_df = self.tweet_df[self.tweet_df.split == "random"]
+            self.test_size = 0
+        else:
+            self.train_df = self.tweet_df[self.tweet_df.split == "train"]
+            self.train_size = len(self.train_df)
+
+            self.val_df = self.tweet_df[self.tweet_df.split == "val"]
+            self.val_size = len(self.val_df)
+
+            self.test_df = self.tweet_df[self.tweet_df.split == "test"]
+            self.test_size = len(self.test_df)
 
         self._look_dict = {
             "train": (self.train_df, self.train_size),
@@ -40,7 +52,7 @@ class TweetDataset(Dataset):
 
     @classmethod
     def load_dataset_and_make_vectorizer(
-        cls, tweets_csv, token_length_cutoff=1, token_count_cutoff=4
+        cls, tweets_csv, token_length_cutoff=1, token_count_cutoff=4, use_full_dataset=False
     ):
         """
         Load dataset and make a new vectorizer.
@@ -50,17 +62,20 @@ class TweetDataset(Dataset):
             defaults to 1.
         :param token_count_cutoff: Cutoff to drop tokens with count less than
             the given value. default to 4.
+        :param use_full_dataset: Boolean param to control whether to use the full dataset
+            training the model or not. defaults to False.
         :return: an instance of TweetDataset.
         """
         tweet_df = pd.read_csv(tweets_csv)
         train_tweet_df = tweet_df[tweet_df.split == "train"]
         return cls(
-            tweet_df,
-            TweetVectorizer.from_dataframe(
+            tweet_df=tweet_df,
+            vectorizer=TweetVectorizer.from_dataframe(
                 train_tweet_df, token_length_cutoff=2, token_count_cutoff=4
             ),
-            token_length_cutoff,
-            token_count_cutoff,
+            token_length_cutoff=token_length_cutoff,
+            token_count_cutoff=token_count_cutoff,
+            use_full_dataset=use_full_dataset
         )
 
     @staticmethod
