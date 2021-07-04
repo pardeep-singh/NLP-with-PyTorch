@@ -7,7 +7,12 @@ from vectorizer import TweetVectorizer
 
 class TweetDataset(Dataset):
     def __init__(
-        self, tweet_df, vectorizer, token_length_cutoff=1, token_count_cutoff=4, use_full_dataset=False
+        self,
+        tweet_df,
+        vectorizer,
+        token_length_cutoff=1,
+        token_count_cutoff=4,
+        use_full_dataset=False,
     ):
         """
         :param tweet_df: Tweets Dataframe.
@@ -25,14 +30,14 @@ class TweetDataset(Dataset):
         self.token_count_cutoff = token_count_cutoff
 
         if use_full_dataset:
-            self.train_df = self.tweet_df[self.tweet_df.split == "train"]
+            self.train_df = self.tweet_df
             self.train_size = len(self.train_df)
 
-            self.val_df = self.tweet_df[self.tweet_df.split == "random"]
-            self.val_size = 0
+            self.val_df = self.tweet_df[self.tweet_df.split == "val"]
+            self.val_size = len(self.val_df)
 
-            self.test_df = self.tweet_df[self.tweet_df.split == "random"]
-            self.test_size = 0
+            self.test_df = self.tweet_df[self.tweet_df.split == "test"]
+            self.test_size = len(self.test_df)
         else:
             self.train_df = self.tweet_df[self.tweet_df.split == "train"]
             self.train_size = len(self.train_df)
@@ -52,7 +57,11 @@ class TweetDataset(Dataset):
 
     @classmethod
     def load_dataset_and_make_vectorizer(
-        cls, tweets_csv, token_length_cutoff=1, token_count_cutoff=4, use_full_dataset=False
+        cls,
+        tweets_csv,
+        token_length_cutoff=1,
+        token_count_cutoff=4,
+        use_full_dataset=False,
     ):
         """
         Load dataset and make a new vectorizer.
@@ -75,7 +84,7 @@ class TweetDataset(Dataset):
             ),
             token_length_cutoff=token_length_cutoff,
             token_count_cutoff=token_count_cutoff,
-            use_full_dataset=use_full_dataset
+            use_full_dataset=use_full_dataset,
         )
 
     @staticmethod

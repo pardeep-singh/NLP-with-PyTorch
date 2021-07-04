@@ -46,6 +46,10 @@ def handle_dirs(dirpath):
 
 def make_train_state(args):
     return {
+        "stop_early": False,
+        "early_stopping_step": 0,
+        "early_stopping_best_val": 1e8,
+        "learning_rate": args.learning_rate,
         "epoch_index": 0,
         "train_loss": [],
         "train_acc": [],
@@ -54,10 +58,6 @@ def make_train_state(args):
         "test_loss": -1,
         "test_acc": -1,
         "model_filename": args.model_state_file,
-        "early_stopping_best_val": 1e8,
-        "stop_early": False,
-        "early_stopping_step": 0,
-        "learning_rate": args.learning_rate,
     }
 
 
@@ -137,6 +137,8 @@ def train_model(classifier, loss_func, optimizer, scheduler, dataset, args):
         # Iterate Over Training Dataset
         # Setup: Batch Generator, set loss & acc to 0, set train mode on
         dataset.set_split("train")
+        if epoch_index == 0:
+            print(f"============ Split={dataset._train_split}, Size={len(dataset)} ============")
         batch_generator = generate_batches(
             dataset, batch_size=args.batch_size, device=args.device
         )
@@ -184,6 +186,8 @@ def train_model(classifier, loss_func, optimizer, scheduler, dataset, args):
         dataset.set_split("val")
         val_running_loss, val_running_acc = 0.0, 0.0
         if len(dataset) > 0:
+            if epoch_index == 0:
+                print(f"============ Split={dataset._train_split}, Size={len(dataset)} ============")
             batch_generator = generate_batches(
                 dataset, batch_size=args.batch_size, device=args.device
             )
@@ -205,11 +209,15 @@ def train_model(classifier, loss_func, optimizer, scheduler, dataset, args):
                     loss=val_running_loss, acc=val_running_acc, epoch=epoch_index
                 )
                 val_bar.update()
+            train_state["val_loss"].append(val_running_loss)
+            train_state["val_acc"].append(val_running_acc)
             scheduler.step(train_state["val_loss"][-1])
         else:
+            if epoch_index == 0:
+                print(f"============ Skipping Validation Pass ============")
+            train_state["val_loss"].append(val_running_loss)
+            train_state["val_acc"].append(val_running_acc)
             scheduler.step(train_state["train_loss"][-1])
-        train_state["val_loss"].append(val_running_loss)
-        train_state["val_acc"].append(val_running_acc)
         train_state = update_train_state(
             args=args, model=classifier, train_state=train_state
         )
@@ -236,6 +244,7 @@ def train_model(classifier, loss_func, optimizer, scheduler, dataset, args):
 def evaluate_test_split(classifier, dataset, loss_func, train_state, args):
     classifier = classifier.to(args.device)
     dataset.set_split("test")
+    print(f"============ Split={dataset._train_split}, Size={len(dataset)} ============")
     running_loss, running_acc = 0.0, 0.0
     if len(dataset) == 0:
         train_state["test_loss"] = running_loss
