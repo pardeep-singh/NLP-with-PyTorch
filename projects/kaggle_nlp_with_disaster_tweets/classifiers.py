@@ -95,3 +95,61 @@ class TweetMLPClassifier1(nn.Module):
         if apply_sigmoid:
             prediction_vector = F.sigmoid(prediction_vector)
         return prediction_vector
+
+
+class TweetCNNClassifier(nn.Module):
+    """
+    CNN based Tweet Clasfifier.
+    """
+    def __init__(self, initial_num_channels, num_classes, num_channels):
+        """
+        :param initial_num_channels: Size of the input feature vector.
+        :param num_classes: size of the output prediction vector.
+        :param num_channels: constant channel size to use throughout the network.
+        """
+        super(TweetCNNClassifier, self).__init__()
+        self.convnet = nn.Sequential(
+            nn.Conv1d(
+                in_channels=initial_num_channels,
+                out_channels=num_channels,
+                kernel_size=3
+            ),
+            nn.ELU(),
+            nn.Conv1d(
+                in_channels=num_channels,
+                out_channels=num_channels,
+                kernel_size=3,
+                stride=2
+            ),
+            nn.ELU(),
+            nn.Conv1d(
+                in_channels=num_channels,
+                out_channels=num_channels,
+                kernel_size=3,
+                stride=2
+            ),
+            nn.ELU(),
+            nn.Conv1d(
+                in_channels=num_channels,
+                out_channels=num_channels,
+                kernel_size=3
+            ),
+            nn.ELU()
+        )
+        self.fc = nn.Linear(in_features=num_channels, out_features=num_classes)
+
+    def forward(self, x_in, apply_sigmoid=False):
+        """
+        The forward pass of the classifier.
+
+        :param x_in: an input data tensor.
+            X_in.shape should be (batch, initial_num_channels).
+        :param apply_sigmoid: a flag for the sigmoid activation.
+            It should be false if used with the cross-entropy losses.
+        :return: the resulting tensor. Shape should be (batch, num_classes).
+        """
+        features = self.convnet(x_in).squeeze(dim=2)
+        prediction_vector = self.fc(features).squeeze()
+        if apply_sigmoid:
+            prediction_vector = F.softmax(prediction_vector, dim=1)
+        return prediction_vector
