@@ -138,7 +138,9 @@ def train_model(classifier, loss_func, optimizer, scheduler, dataset, args):
         # Setup: Batch Generator, set loss & acc to 0, set train mode on
         dataset.set_split("train")
         if epoch_index == 0:
-            print(f"============ Split={dataset._train_split}, Size={len(dataset)} ============")
+            print(
+                f"============ Split={dataset._train_split}, Size={len(dataset)} ============"
+            )
         batch_generator = generate_batches(
             dataset, batch_size=args.batch_size, device=args.device
         )
@@ -187,7 +189,9 @@ def train_model(classifier, loss_func, optimizer, scheduler, dataset, args):
         val_running_loss, val_running_acc = 0.0, 0.0
         if len(dataset) > 0:
             if epoch_index == 0:
-                print(f"============ Split={dataset._train_split}, Size={len(dataset)} ============")
+                print(
+                    f"============ Split={dataset._train_split}, Size={len(dataset)} ============"
+                )
             batch_generator = generate_batches(
                 dataset, batch_size=args.batch_size, device=args.device
             )
@@ -244,7 +248,9 @@ def train_model(classifier, loss_func, optimizer, scheduler, dataset, args):
 def evaluate_test_split(classifier, dataset, loss_func, train_state, args):
     classifier = classifier.to(args.device)
     dataset.set_split("test")
-    print(f"============ Split={dataset._train_split}, Size={len(dataset)} ============")
+    print(
+        f"============ Split={dataset._train_split}, Size={len(dataset)} ============"
+    )
     running_loss, running_acc = 0.0, 0.0
     if len(dataset) == 0:
         train_state["test_loss"] = running_loss

@@ -101,10 +101,11 @@ class TweetCNNClassifier(nn.Module):
     """
     CNN based Tweet Clasfifier.
     """
-    def __init__(self, initial_num_channels, num_classes, num_channels):
+
+    def __init__(self, initial_num_channels, output_dim, num_channels):
         """
         :param initial_num_channels: Size of the input feature vector.
-        :param num_classes: size of the output prediction vector.
+        :param output_dim: size of the output prediction vector.
         :param num_channels: constant channel size to use throughout the network.
         """
         super(TweetCNNClassifier, self).__init__()
@@ -112,31 +113,33 @@ class TweetCNNClassifier(nn.Module):
             nn.Conv1d(
                 in_channels=initial_num_channels,
                 out_channels=num_channels,
-                kernel_size=3
+                kernel_size=3,
             ),
             nn.ELU(),
             nn.Conv1d(
                 in_channels=num_channels,
                 out_channels=num_channels,
                 kernel_size=3,
-                stride=2
+                stride=2,
             ),
             nn.ELU(),
             nn.Conv1d(
                 in_channels=num_channels,
                 out_channels=num_channels,
                 kernel_size=3,
-                stride=2
+                stride=2,
             ),
             nn.ELU(),
             nn.Conv1d(
-                in_channels=num_channels,
-                out_channels=num_channels,
-                kernel_size=3
+                in_channels=num_channels, out_channels=num_channels, kernel_size=3
             ),
-            nn.ELU()
+            nn.ELU(),
+            nn.Conv1d(
+                in_channels=num_channels, out_channels=num_channels, kernel_size=2
+            ),
+            nn.ELU(),
         )
-        self.fc = nn.Linear(in_features=num_channels, out_features=num_classes)
+        self.fc = nn.Linear(num_channels, output_dim)
 
     def forward(self, x_in, apply_sigmoid=False):
         """
@@ -151,5 +154,5 @@ class TweetCNNClassifier(nn.Module):
         features = self.convnet(x_in).squeeze(dim=2)
         prediction_vector = self.fc(features).squeeze()
         if apply_sigmoid:
-            prediction_vector = F.softmax(prediction_vector, dim=1)
+            prediction_vector = F.sigmoid(prediction_vector)
         return prediction_vector
