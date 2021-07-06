@@ -6,3 +6,4 @@ seaborn
 spacy
 nltk
 nb_black
+annoy
