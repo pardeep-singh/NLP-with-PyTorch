@@ -295,3 +295,9 @@ class SequenceTweetDataset(TweetDataset):
         """
         with open(vectorizer_filepath) as file:
             return SequenceVectorizer.from_serializable(json.load(file))
+
+    def __getitem__(self, index):
+        row = self._target_df.iloc[index]
+        tweet_vector = self._vectorizer.vectorize(row.text, self._max_seq_length)
+        target_index = self._vectorizer.target_vocab.lookup_token(row.target)
+        return {"x_data": tweet_vector, "y_target": target_index}

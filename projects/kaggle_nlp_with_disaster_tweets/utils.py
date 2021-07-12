@@ -154,7 +154,7 @@ def train_model(classifier, loss_func, optimizer, scheduler, dataset, args):
             optimizer.zero_grad()
 
             # Step 2. Compute the gradients
-            y_pred = classifier(x_in=batch_dict["x_data"].float())
+            y_pred = classifier(x_in=batch_dict["x_data"])
 
             # Step 3. Compute the Output
             loss = loss_func(y_pred, batch_dict["y_target"].float())
@@ -199,7 +199,7 @@ def train_model(classifier, loss_func, optimizer, scheduler, dataset, args):
 
             for batch_index, batch_dict in enumerate(batch_generator):
                 # Step 1. Compute the Output
-                y_pred = classifier(x_in=batch_dict["x_data"].float())
+                y_pred = classifier(x_in=batch_dict["x_data"])
 
                 # Step 2. Compute the loss
                 loss = loss_func(y_pred, batch_dict["y_target"].float())
@@ -263,7 +263,7 @@ def evaluate_test_split(classifier, dataset, loss_func, train_state, args):
 
     for batch_index, batch_dict in enumerate(batch_generator):
         # Step 1. Compute the Output
-        y_pred = classifier(x_in=batch_dict["x_data"].float())
+        y_pred = classifier(x_in=batch_dict["x_data"])
 
         # Step 2. Compute the loss
         loss = loss_func(y_pred, batch_dict["y_target"].float())
@@ -289,6 +289,32 @@ def predict_class(classifier, vectorizer, tweet, decision_threshold=0.5):
     probability_value = F.sigmoid(result).item()
     predicted_index = 1 if probability_value >= decision_threshold else 0
     return vectorizer.target_vocab.lookup_index(predicted_index)
+
+
+def load_glove_from_file(glove_filepath):
+    word_to_index = {}
+    embeddings = []
+    with open(glove_filepath, "r") as fp:
+        for index, line in enumerate(fp):
+            line = line.split(" ")
+            word_to_index[line[0]] = index
+            embedding_i = np.array([float(val) for val in line[1:]])
+            embeddings.append(embedding_i)
+    return word_to_index, np.stack(embeddings)
+
+
+def make_embedding_matrix(glove_filepath, words):
+    word_to_idx, glove_embeddings = load_glove_from_file(glove_filepath)
+    embedding_size = glove_embeddings.shape[1]
+    final_embeddings = np.zeros((len(words), embedding_size))
+    for i, word in enumerate(words):
+        if word in word_to_idx:
+            final_embeddings[i, :] = glove_embeddings[word_to_idx[word]]
+        else:
+            embedding_i = torch.ones(1, embedding_size)
+            torch.nn.init.xavier_uniform(embedding_i)
+            final_embeddings[i, :] = embedding_i
+    return final_embeddings
 
 
 if __name__ == "__main__":

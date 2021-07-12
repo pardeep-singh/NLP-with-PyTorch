@@ -306,7 +306,7 @@ class SequenceVectorizer(object):
 
         out_vector = np.zeros(vector_length, dtype=np.int64)
         out_vector[: len(indices)] = indices
-        out_vector[len(indices) :] = self.tweet_vocab.mask_index
+        out_vector[len(indices):] = self.tweet_vocab.mask_index
         return out_vector
 
     @classmethod

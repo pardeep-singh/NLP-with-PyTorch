@@ -108,8 +108,8 @@ class SequenceVocabulary(object):
         self._end_seq_token = end_seq_token
         self.mask_index = self.add_token(self._mask_token)
         self.unk_index = self.add_token(self._unk_token)
-        self._begin_seq_token = self.add_token(self._begin_seq_token)
-        self._end_seq_token = self.add_token(self._end_seq_token)
+        self.begin_seq_index = self.add_token(self._begin_seq_token)
+        self.end_seq_index = self.add_token(self._end_seq_token)
 
     def to_serializable(self):
         return {
