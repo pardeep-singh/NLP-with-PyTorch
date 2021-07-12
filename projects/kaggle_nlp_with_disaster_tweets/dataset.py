@@ -2,7 +2,7 @@ from torch.utils.data import Dataset
 import json
 import pandas as pd
 
-from vectorizer import TweetVectorizer, CNNTweetVectorizer
+from vectorizer import TweetVectorizer, CNNTweetVectorizer, SequenceVectorizer
 
 
 class TweetDataset(Dataset):
@@ -222,3 +222,76 @@ class CNNTweetDataset(TweetDataset):
         """
         with open(vectorizer_filepath) as file:
             return CNNTweetVectorizer.from_serializable(json.load(file))
+
+
+class SequenceTweetDataset(TweetDataset):
+    def __init__(
+        self,
+        tweet_df,
+        vectorizer,
+        token_length_cutoff=1,
+        token_count_cutoff=4,
+        use_full_dataset=False,
+    ):
+        """
+        :param tweet_df: Tweets Dataframe.
+        :param vectorizer: Vectorizer instantiated from dataset.
+        :param token_length_cutoff: Cutoff to drop token less than the given value.
+            defaults to 1.
+        :param token_count_cutoff: Cutoff to drop tokens with count less than
+            the given value. default to 4.
+        :param use_full_dataset: Boolean param to control whether to use the full dataset
+            training the model or not. defaults to False.
+        """
+        super(SequenceTweetDataset, self).__init__(
+            tweet_df,
+            vectorizer,
+            token_length_cutoff,
+            token_count_cutoff,
+            use_full_dataset,
+        )
+        measure_len = lambda content: len(content.split(" "))
+        self._max_seq_length = max(map(measure_len, tweet_df.text)) + 2
+
+    @classmethod
+    def load_dataset_and_make_vectorizer(
+        cls,
+        tweets_csv,
+        token_length_cutoff=1,
+        token_count_cutoff=4,
+        use_full_dataset=False,
+    ):
+        """
+        Load dataset and make a new vectorizer.
+
+        :param tweets_csv: location of the dataset.
+        :param token_length_cutoff: Cutoff to drop token less than the given value.
+            defaults to 1.
+        :param token_count_cutoff: Cutoff to drop tokens with count less than
+            the given value. default to 4.
+        :param use_full_dataset: Boolean param to control whether to use the full dataset
+            training the model or not. defaults to False.
+        :return: an instance of TweetDataset.
+        """
+        tweet_df = pd.read_csv(tweets_csv)
+        train_tweet_df = tweet_df[tweet_df.split == "train"]
+        return cls(
+            tweet_df=tweet_df,
+            vectorizer=SequenceVectorizer.from_dataframe(
+                train_tweet_df, token_length_cutoff=2, token_count_cutoff=4
+            ),
+            token_length_cutoff=token_length_cutoff,
+            token_count_cutoff=token_count_cutoff,
+            use_full_dataset=use_full_dataset,
+        )
+
+    @staticmethod
+    def load_vectorizer_only(vectorizer_filepath):
+        """
+        A static method for loading the vectorizer from file.
+
+        :param vectorizer_filepath: the location of serialized vectorizer.
+        :return: An instance of TweetVectorizer.
+        """
+        with open(vectorizer_filepath) as file:
+            return SequenceVectorizer.from_serializable(json.load(file))

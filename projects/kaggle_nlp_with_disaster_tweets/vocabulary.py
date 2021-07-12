@@ -86,3 +86,69 @@ class Vocabulary(object):
 
     def __len__(self):
         return len(self._token_to_idx)
+
+
+class SequenceVocabulary(object):
+    def __init__(
+        self,
+        token_to_idx=None,
+        unk_token="<UNK>",
+        mask_token="<MASK>",
+        begin_seq_token="<BEGIN>",
+        end_seq_token="<END>",
+    ):
+        super(SequenceVocabulary, self).__init__()
+        if token_to_idx is None:
+            token_to_idx = {}
+        self._token_to_idx = token_to_idx
+        self._idx_to_token = {idx: token for token, idx in self._token_to_idx.items()}
+        self._mask_token = mask_token
+        self._unk_token = unk_token
+        self._begin_seq_token = begin_seq_token
+        self._end_seq_token = end_seq_token
+        self.mask_index = self.add_token(self._mask_token)
+        self.unk_index = self.add_token(self._unk_token)
+        self._begin_seq_token = self.add_token(self._begin_seq_token)
+        self._end_seq_token = self.add_token(self._end_seq_token)
+
+    def to_serializable(self):
+        return {
+            "token_to_idx": self._token_to_idx,
+            "unk_token": self._unk_token,
+            "mask_token": self._mask_token,
+            "begin_seq_token": self._begin_seq_token,
+            "end_seq_token": self._end_seq_token,
+        }
+
+    def lookup_token(self, token):
+        if self.unk_index >= 0:
+            return self._token_to_idx.get(token, self.unk_index)
+        else:
+            return self._token_to_idx[token]
+
+    @classmethod
+    def from_serializable(cls, contents):
+        return cls(**contents)
+
+    def add_token(self, token):
+        if token in self._token_to_idx:
+            index = self._token_to_idx[token]
+        else:
+            index = len(self._token_to_idx)
+            self._token_to_idx[token] = index
+            self._idx_to_token[index] = token
+        return index
+
+    def add_many(self, tokens):
+        return [self.add_token(token) for token in tokens]
+
+    def lookup_index(self, index):
+        if index not in self._idx_to_token:
+            raise KeyError(f"The Index {index} is not in the Vocab.")
+        return self._idx_to_token[index]
+
+    def __str__(self):
+        return f"<Vocabulary(size={len(self)})>"
+
+    def __len__(self):
+        return len(self._token_to_idx)
