@@ -151,7 +151,12 @@ def train_model(classifier, loss_func, optimizer, scheduler, dataset, args):
             optimizer.zero_grad()
 
             # Step 2. Compute the gradients
-            y_pred = classifier(x_in=batch_dict["x_data"])
+            if "x_length" in batch_dict:
+                y_pred = classifier(
+                    x_in=batch_dict["x_data"], x_lengths=batch_dict.get("x_length")
+                )
+            else:
+                y_pred = classifier(x_in=batch_dict["x_data"])
 
             # Step 3. Compute the Output
             loss = loss_func(y_pred, batch_dict["y_target"])
@@ -196,7 +201,12 @@ def train_model(classifier, loss_func, optimizer, scheduler, dataset, args):
 
             for batch_index, batch_dict in enumerate(batch_generator):
                 # Step 1. Compute the Output
-                y_pred = classifier(x_in=batch_dict["x_data"])
+                if "x_length" in batch_dict:
+                    y_pred = classifier(
+                        x_in=batch_dict["x_data"], x_lengths=batch_dict.get("x_length")
+                    )
+                else:
+                    y_pred = classifier(x_in=batch_dict["x_data"])
 
                 # Step 2. Compute the loss
                 loss = loss_func(y_pred, batch_dict["y_target"])
@@ -260,7 +270,12 @@ def evaluate_test_split(classifier, dataset, loss_func, train_state, args):
 
     for batch_index, batch_dict in enumerate(batch_generator):
         # Step 1. Compute the Output
-        y_pred = classifier(x_in=batch_dict["x_data"])
+        if "x_length" in batch_dict:
+            y_pred = classifier(
+                x_in=batch_dict["x_data"], x_lengths=batch_dict.get("x_length")
+            )
+        else:
+            y_pred = classifier(x_in=batch_dict["x_data"])
 
         # Step 2. Compute the loss
         loss = loss_func(y_pred, batch_dict["y_target"])
