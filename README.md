@@ -26,7 +26,7 @@ This respository contains the following:
 
 ### Natural Language Processing with Disaster Tweets
 
-- [Dataset Exploration](kaggle_nlp_with_disaster_tweets/)
+- [Dataset Exploration](kaggle_nlp_with_disaster_tweets/exploration.ipynb)
 - [Using Perceptron, Multi-Layer Perceptron and CNN based models for classification](kaggle_nlp_with_disaster_tweets/modeling.ipynb)
 - [Embedding based classifier for classification](kaggle_nlp_with_disaster_tweets/tweet_embedding_based_classifier_experimentation.ipynb)
 - [Simple RNN based classifier for classification](kaggle_nlp_with_disaster_tweets/tweet_simple_rnn_based_classifier_experimentation.ipynb)
