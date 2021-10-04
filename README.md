@@ -8,7 +8,6 @@ This respository contains the following:
 
 - Book code and notes
 - Example of applying the concepts learned in book to kaggle practice competition: [Natural Language Processing with Disaster Tweets](https://www.kaggle.com/c/nlp-getting-started)
-- Code from Pytorch blog Post Series: [DEEP LEARNING FOR NLP WITH PYTORCH](https://pytorch.org/tutorials/beginner/deep_learning_nlp_tutorial.html)
 
 ## Table of Contents
 
@@ -31,3 +30,7 @@ This respository contains the following:
 - [Using Perceptron, Multi-Layer Perceptron and CNN based models for classification](kaggle_nlp_with_disaster_tweets/modeling.ipynb)
 - [Embedding based classifier for classification](kaggle_nlp_with_disaster_tweets/tweet_embedding_based_classifier_experimentation.ipynb)
 - [Simple RNN based classifier for classification](kaggle_nlp_with_disaster_tweets/tweet_simple_rnn_based_classifier_experimentation.ipynb)
+
+## References
+
+- [Original Book Github Repo](https://github.com/joosthub/PyTorchNLPBook)
